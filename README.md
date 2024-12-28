@@ -1,58 +1,81 @@
-# model loading optimization flags or inference efficiency configurations
+# Fine-Tuning Microsoft Phi-2 Model
 
-# Parameters:
-- [flash_attn](#flash_attn)
-- [flash_rotary](#flash_rotary)
-- [fused_dense](#fused_dense)
-- [low_cpu_mem_usage](#low_cpu_mem_usage)
-- [device_map](#device_map)
-- [revision](#revision)
+This repository provides a detailed workflow for fine-tuning the `microsoft/phi-2` model on a custom dataset, specifically for mental health counseling conversations. The process leverages parameter-efficient fine-tuning techniques, such as LoRA, to adapt the model effectively.
 
-# flash_attn
-### flash_attn=True:
+## Table of Contents
 
-- **Explanation:** This enables Flash Attention, an optimized attention mechanism that significantly speeds up transformer model inference and training.
-- **Simple Analogy:** Think of it like using a high-speed express lane instead of a regular traffic lane when processing information.
-- **Use Case:** Works best with NVIDIA GPUs (especially A100, H100 series) that support this optimization.
-- **Compatibility:** Not all models support this - primarily works with newer transformer architectures.
+- [Overview](#overview)
+- [Installation](#installation)
+- [Dataset Preparation](#dataset-preparation)
+- [Fine-Tuning](#fine-tuning)
+- [Evaluation](#evaluation)
+- [Usage](#usage)
+- [License](#license)
 
+## Overview
 
-# flash_rotary
-### flash_rotary=True:
+This project demonstrates how to fine-tune the `phi-2` model for causal language modeling tasks. The primary focus is to use mental health counseling conversations to adapt the model for generating helpful and empathetic responses.
 
-- **Explanation:** Optimizes the rotary positional embedding calculations, which help the model understand the position of tokens in a sequence.
-- **Simple Analogy:** It's like having a super-efficient GPS that quickly calculates positioning information for words in a sentence.
-- **Compatibility:** Mainly works with models using rotary positional embeddings (common in LLaMA-based architectures).
+## Installation
 
-# fused_dense
-### fused_dense=True:
+To run the notebook, ensure the required dependencies are installed:
 
-- **Explanation:** Combines multiple linear layer operations into a single, more efficient computation.
-- **Simple Analogy:** Instead of doing multiple separate math calculations, it's like doing several calculations in one go, saving time and computational resources.
-- **Benefit:** Reduces memory usage and speeds up model inference.
+```bash
+!pip install bitsandbytes accelerate transformers peft einops torch datasets trl -q
+```
 
-# low_cpu_mem_usage
-### low_cpu_mem_usage=True:
+## Dataset Preparation
 
-- **Explanation:** Loads the model in a memory-efficient way, reducing the RAM required to load large models.
-- **Simple Analogy:** It's like packing a suitcase more efficiently, using less space while keeping all your important items.
-- **Great for:** Machines with limited RAM or when working with very large models.
+1. **Dataset Source**:
+   - The dataset used in this project is `Amod/mental_health_counseling_conversations`.
 
-# device_map
-### device_map={"": 0}:
+2. **Loading the Dataset**:
+   ```python
+   from datasets import load_dataset
+   dataset_name = "Amod/mental_health_counseling_conversations"
+   dataset = load_dataset(dataset_name)
+   ```
 
-- **Explanation:** Specifies which GPU or device to load the model on.
-- **Simple Breakdown:**
+3. **Data Transformation**:
+   The dataset is processed and transformed to prepare it for model training. The transformations are saved to a CSV file for reuse:
+   ```python
+   transformmed_data.to_csv("transformed_data.csv", index=False)
+   dataset = load_dataset("csv", data_files="/content/transformed_data.csv", split="train")
+   ```
 
-"" means the entire model
-0 indicates the first GPU (index 0)
+## Fine-Tuning
 
+1. **Base Model**:
+   - `microsoft/phi-2` is used as the base model.
+   - The tokenizer is initialized with configurations for causal language modeling.
 
-- **Use Case:** Helpful when you have multiple GPUs and want to explicitly control model placement.
+2. **LoRA Configuration**:
+   - LoRA (Low-Rank Adaptation) is applied for efficient fine-tuning:
+     ```python
+     peft_config = LoraConfig(...)
+     ```
 
-# revision
-### revision="refs/pr/23":
+3. **Training**:
+   - Training is performed using `SFTTrainer` from the `transformers` library:
+     ```python
+     trainer = SFTTrainer(...)
+     trainer.train()
+     ```
 
-- **Explanation:** Loads a specific version or pull request of the model from Hugging Face.
-- **Simple Analogy:** It's like checking out a specific draft or version of a document from a library.
-Use Case: Useful for testing experimental model versions or specific improvements.
+## Evaluation
+
+After fine-tuning, the model is evaluated for its ability to generate empathetic and coherent responses. Example:
+
+```python
+from transformers import pipeline
+prompt = "I am unable to sleep at night. do you have any suggestions?"
+response = pipeline(prompt)
+```
+
+## Usage
+
+The fine-tuned model can be integrated into applications for generating contextually appropriate responses for mental health counseling or similar use cases.
+
+## License
+
+This project is licensed under the MIT License. See the LICENSE file for details.
